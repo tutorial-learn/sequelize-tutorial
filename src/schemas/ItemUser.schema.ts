@@ -5,16 +5,16 @@ import {
   Model,
   Table,
 } from "sequelize-typescript";
-import Cart from "./Cart.schema";
+import Item from "./Item.schema";
 import User from "./User.schema";
 
-@Table({ charset: "utf8mb4", collate: "utf8mb4_general_ci" })
-export default class CartUser extends Model {
+@Table({ charset: "utf8", collate: "utf8_unicode_ci" })
+export default class ItemUser extends Model {
   @ForeignKey(() => User)
   @Column(DataType.UUID)
   userId: string;
 
-  @ForeignKey(() => Cart)
+  @ForeignKey(() => Item)
   @Column(DataType.UUID)
-  cartId: string;
+  itemId: string;
 }

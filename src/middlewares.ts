@@ -1,14 +1,8 @@
-import jwt from "jsonwebtoken";
 import { Context, Next } from "koa";
 import User from "./schemas/User.schema";
+import { varifyToken } from "./utils";
 
-const JWT_SECRET = process.env.JWT_SECRET || "development";
-
-export const generateToken = (payload: any) => jwt.sign(payload, JWT_SECRET);
-
-export const varifyToken = (token: string) => jwt.verify(token, JWT_SECRET);
-
-export const auth = async (ctx: Context, next: Next) => {
+export const checkAuth = async (ctx: Context, next: Next) => {
   const token = ctx.request.header.token;
   try {
     if (token) {
@@ -23,4 +17,12 @@ export const auth = async (ctx: Context, next: Next) => {
   } finally {
     return next();
   }
+};
+
+export const privatePath = (ctx: Context, next: Next) => {
+  const user = ctx.user;
+  if (user) {
+    return next();
+  }
+  throw Error("This path is required login");
 };

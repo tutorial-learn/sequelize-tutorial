@@ -13,12 +13,12 @@ import {
   Unique,
 } from "sequelize-typescript";
 import Avatar from "./Avatar.schema";
-import Cart from "./Cart.schema";
-import CartUser from "./CartUser.schema";
+import Item from "./Item.schema";
+import ItemUser from "./ItemUser.schema";
 import Like from "./LIke.schema";
 import UserLIke from "./UserLike.schema";
 
-@Table({ charset: "utf8mb4", collate: "utf8mb4_general_ci" })
+@Table({ charset: "utf8", collate: "utf8_unicode_ci" })
 export default class User extends Model {
   @PrimaryKey
   @Default(DataType.UUIDV4)
@@ -42,8 +42,11 @@ export default class User extends Model {
   @HasOne(() => Avatar)
   avatar: Avatar;
 
-  @BelongsToMany(() => Cart, () => CartUser)
-  carts: Cart[];
+  @HasMany(() => Item)
+  carts: Item[];
+
+  @BelongsToMany(() => Item, () => ItemUser)
+  items: Item[];
 
   @BelongsToMany(() => Like, () => UserLIke)
   likes: Like[];

@@ -13,11 +13,12 @@ const db = new Sequelize({
   dialect: "mysql",
   port: 3306,
   models: [`${__dirname}/schemas/*.schema.ts`],
-  dialectOptions: {
-    charset: "utf8mb4",
-    collate: "utf8mb4_general_ci",
-    timezone: "+00:00",
+  define: {
+    charset: "utf8",
+    collate: "utf8_general_ci",
+    timestamps: true,
   },
+  logging: false,
 });
 
 (async () => {

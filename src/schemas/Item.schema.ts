@@ -2,18 +2,19 @@ import {
   Table,
   Column,
   DataType,
-  ForeignKey,
   PrimaryKey,
   Model,
   Default,
   AllowNull,
   BelongsToMany,
+  ForeignKey,
+  BelongsTo,
 } from "sequelize-typescript";
-import CartUser from "./CartUser.schema";
+import ItemUser from "./ItemUser.schema";
 import User from "./User.schema";
 
-@Table({ charset: "utf8mb4", collate: "utf8mb4_general_ci" })
-export default class Cart extends Model {
+@Table({ charset: "utf8", collate: "utf8_unicode_ci" })
+export default class Item extends Model {
   @PrimaryKey
   @Default(DataType.UUIDV4)
   @Column(DataType.UUID)
@@ -27,6 +28,17 @@ export default class Cart extends Model {
   @Column(DataType.STRING)
   description: string;
 
-  @BelongsToMany(() => User, () => CartUser)
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
+  price: number;
+
+  @ForeignKey(() => User)
+  @Column(DataType.UUID)
+  itemId: string;
+
+  @BelongsTo(() => User)
+  user: User;
+
+  @BelongsToMany(() => User, () => ItemUser)
   users: User[];
 }

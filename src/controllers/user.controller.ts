@@ -1,9 +1,12 @@
-import Joi from "joi";
-import User from "../schemas/User.schema";
 import { Context } from "koa";
-import { generateHash } from "../utils";
-import { generateToken } from "../jwt";
 import bcrypt from "bcrypt";
+import Joi from "joi";
+
+import User from "../schemas/User.schema";
+import Avatar from "../schemas/Avatar.schema";
+
+import { generateHash, generateToken } from "../utils";
+import Item from "../schemas/Item.schema";
 
 export const signup = async (ctx: Context) => {
   const { email, username, password } = ctx.request.body;
@@ -18,36 +21,43 @@ export const signup = async (ctx: Context) => {
   const result = schema.validate({ email, username, password });
 
   if (result.error) {
-    throw Error("Incorrect input type");
+    ctx.status = 401;
+    ctx.body = {
+      success: false,
+      message: "Incorrect input type",
+    };
+    return;
   }
 
   const hashedPassword = generateHash(password);
 
   try {
     const { email, username } = result.value;
-    const newUser: any = await User.create({
-      email,
-      username,
-      password: hashedPassword,
-    });
+    const newUser = await User.create(
+      {
+        email,
+        username,
+        password: hashedPassword,
+        avatar: {
+          url: "",
+        },
+      },
+      { include: Avatar }
+    );
 
     ctx.status = 200;
     ctx.body = {
-      status: 200,
       success: true,
-      data: {
-        email: newUser.dataValues.email,
-        username: newUser.dataValues.username,
-      },
+      data: newUser,
     };
   } catch (e) {
     ctx.status = 500;
     ctx.body = {
-      status: 500,
       success: false,
       message: e.message,
     };
   }
+  return;
 };
 
 export const login = async (ctx: Context) => {
@@ -62,7 +72,12 @@ export const login = async (ctx: Context) => {
   const result = schema.validate({ email, password });
 
   if (result.error) {
-    throw Error("Incorrect input type");
+    ctx.status = 401;
+    ctx.body = {
+      success: false,
+      message: "Incorrect input type",
+    };
+    return;
   }
 
   const hashedPassword = generateHash(password);
@@ -91,10 +106,57 @@ export const login = async (ctx: Context) => {
       },
     };
   } catch (e) {
-    ctx.status = 401;
+    ctx.status = 500;
     ctx.body = {
       success: false,
       message: e.message,
+    };
+  }
+  return;
+};
+
+export const editAccount = async (ctx: Context) => {
+  const userInfo = ctx.user;
+  const { username, url } = ctx.request.body;
+
+  try {
+    await User.update({ username }, { where: { id: userInfo.id } });
+
+    await Avatar.update({ url }, { where: { userId: userInfo.id } });
+
+    ctx.status = 200;
+    ctx.body = {
+      success: true,
+    };
+  } catch (e) {
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      message: e.message,
+    };
+  }
+};
+
+export const getMyInfo = async (ctx: Context) => {
+  const userInfo = ctx.user;
+
+  try {
+    const getUserInfo = await User.findOne({
+      where: { id: userInfo.id },
+      include: [{ model: Item }, { model: Avatar }],
+      attributes: ["username, avatar, carts, items"],
+    });
+
+    ctx.status = 200;
+    ctx.body = {
+      success: true,
+      data: getUserInfo,
+    };
+  } catch (e) {
+    ctx.status = 500;
+    ctx.data = {
+      success: false,
+      message: e.masseage,
     };
   }
 };

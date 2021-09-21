@@ -11,7 +11,7 @@ import {
 } from "sequelize-typescript";
 import User from "./User.schema";
 
-@Table({ charset: "utf8mb4", collate: "utf8mb4_general_ci" })
+@Table({ charset: "utf8", collate: "utf8_unicode_ci" })
 export default class Avatar extends Model {
   @PrimaryKey
   @Default(DataType.UUIDV4)

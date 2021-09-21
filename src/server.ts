@@ -5,7 +5,8 @@ import logger from "koa-morgan";
 import dotenv from "dotenv";
 import path from "path";
 import bodyParser from "koa-bodyparser";
-import apiRouter from "./api";
+import apiRouter from "./routers/api.router";
+import { checkAuth } from "./middlewares";
 import "./db";
 
 dotenv.config({
@@ -20,15 +21,15 @@ dotenv.config({
 const PORT = process.env.PORT || 3000;
 
 const app = new Koa();
-const router = new Router();
+const globalRouter = new Router();
 
 app.use(helmet());
 app.use(bodyParser());
 app.use(logger("dev"));
 
-router.use("/api", apiRouter.routes());
+globalRouter.use("/api", checkAuth, apiRouter.routes());
 
-app.use(router.routes()).use(router.allowedMethods());
+app.use(globalRouter.routes()).use(globalRouter.allowedMethods());
 
 const start = async () => {
   app.listen(PORT, () => {
