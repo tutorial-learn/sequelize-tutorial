@@ -11,6 +11,8 @@ import {
   PrimaryKey,
   Table,
   Unique,
+  AfterCreate,
+  AfterUpdate,
 } from "sequelize-typescript";
 import Avatar from "./Avatar.schema";
 import Item from "./Item.schema";
@@ -43,11 +45,17 @@ export default class User extends Model {
   avatar: Avatar;
 
   @HasMany(() => Item)
-  carts: Item[];
+  uploadItems: Item[];
 
   @BelongsToMany(() => Item, () => ItemUser)
-  items: Item[];
+  carts: Item[];
 
   @BelongsToMany(() => Like, () => UserLIke)
   likes: Like[];
+
+  @AfterCreate
+  @AfterUpdate
+  static afterProcess(instance) {
+    delete instance.dataValues.password;
+  }
 }

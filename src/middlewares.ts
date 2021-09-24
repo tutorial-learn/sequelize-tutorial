@@ -7,7 +7,9 @@ export const checkAuth = async (ctx: Context, next: Next) => {
   try {
     if (token) {
       const decode: any = varifyToken(token as string);
-      const user: any = await User.findByPk(decode.id);
+      const user: any = await User.findByPk(decode.id, {
+        attributes: ["id", "username", "email"],
+      });
       ctx.user = user;
     } else {
       ctx.user = null;

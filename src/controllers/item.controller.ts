@@ -1,12 +1,16 @@
 import { Context } from "koa";
 import Joi from "joi";
+import Web3 from "web3";
+import CounterAbi from "../abis/Counter";
 
 import Item from "../schemas/Item.schema";
 import User from "../schemas/User.schema";
+import ItemUser from "../schemas/ItemUser.schema";
+import Like from "../schemas/LIke.schema";
 
 export const addItem = async (ctx: Context) => {
   const { title, description, price } = ctx.request.body;
-  const { user } = ctx;
+  const user = ctx.user;
 
   const schema = Joi.object().keys({
     title: Joi.string().required(),
@@ -15,7 +19,6 @@ export const addItem = async (ctx: Context) => {
   });
 
   const result = schema.validate({ title, description, price });
-
   if (result.error) {
     ctx.status = 401;
     ctx.body = {
@@ -30,9 +33,7 @@ export const addItem = async (ctx: Context) => {
       title,
       description,
       price,
-    });
-
-    newItem.$add("users", user);
+    }).then((item) => item.$set("author", user));
 
     ctx.status = 200;
     ctx.body = {
@@ -51,15 +52,9 @@ export const addItem = async (ctx: Context) => {
 
 export const getAllItem = async (ctx: Context) => {
   const user = ctx.user;
+
   try {
-    const allItem = await Item.findAll({
-      include: {
-        model: User,
-        where: { id: user.dataValues.id },
-        required: true,
-        attributes: [],
-      },
-    });
+    const allItem = await Item.findAll();
 
     ctx.status = 200;
     ctx.body = {
@@ -79,13 +74,10 @@ export const getAllItem = async (ctx: Context) => {
 export const getItem = async (ctx: Context) => {
   const user = ctx.user;
   const { id } = ctx.params;
+
   try {
     const item: any = await Item.findOne({
-      where: { id },
-      include: {
-        model: User,
-        where: { id: user.dataValues.id },
-      },
+      where: { id, authorId: user.dataValues.id },
     });
 
     ctx.status = 200;
@@ -108,7 +100,7 @@ export const deleteItem = async (ctx: Context) => {
   const { id } = ctx.params;
 
   try {
-    const varifyOwnItem = await Item.findOne({
+    const verifyOwnItem = await Item.findOne({
       where: { id },
       include: {
         model: User,
@@ -118,7 +110,7 @@ export const deleteItem = async (ctx: Context) => {
       },
     });
 
-    if (!varifyOwnItem) {
+    if (!verifyOwnItem) {
       ctx.status = 401;
       ctx.body = {
         success: false,
@@ -127,7 +119,7 @@ export const deleteItem = async (ctx: Context) => {
       return;
     }
 
-    const deleteItem = await Item.destroy({ where: { id: varifyOwnItem.id } });
+    const deleteItem = await Item.destroy({ where: { id: verifyOwnItem.id } });
 
     ctx.status = 200;
     ctx.body = {
@@ -167,17 +159,11 @@ export const editItem = async (ctx: Context) => {
   }
 
   try {
-    const varifyOwnItem = await Item.findOne({
-      where: { id },
-      include: {
-        model: User,
-        where: { id: user.dataValues.id },
-        required: true,
-        attributes: [],
-      },
+    const verifyOwnItem = await Item.findOne({
+      where: { id, authorId: user.dataValues.id },
     });
 
-    if (!varifyOwnItem) {
+    if (!verifyOwnItem) {
       ctx.status = 401;
       ctx.body = {
         success: false,
@@ -188,13 +174,13 @@ export const editItem = async (ctx: Context) => {
 
     const updataItem = await Item.update(
       { title, description, price },
-      { where: { id: varifyOwnItem.id } }
+      { where: { id: verifyOwnItem.id } }
     );
 
     ctx.status = 200;
     ctx.body = {
       success: true,
-      data: updataItem,
+      data: null,
     };
   } catch (e) {
     ctx.status = 500;
@@ -211,21 +197,141 @@ export const addCart = async (ctx: Context) => {
   const { id } = ctx.params;
 
   try {
-    const userInfo = await User.findByPk(user.id);
     const findItem = await Item.findOne({ where: { id } });
 
-    userInfo.$add("carts", findItem);
+    await User.findByPk(user.id, {
+      attributes: { include: ["id"] },
+    }).then((user) => {
+      user.$add("carts", findItem);
+      return user;
+    });
 
-    ctx.status = 500;
+    ctx.status = 200;
     ctx.body = {
-      success: false,
-      data: findItem,
+      success: true,
+      data: null,
     };
   } catch (e) {
     ctx.status = 500;
     ctx.body = {
       success: false,
       message: e.masseage,
+    };
+  }
+};
+
+export const getAllCart = async (ctx: Context) => {
+  const user = ctx.user;
+
+  try {
+    const myCarts = await User.findOne({
+      where: { id: user.id },
+      attributes: [],
+      include: {
+        model: Item,
+        as: "carts",
+      },
+    });
+
+    ctx.status = 200;
+    ctx.body = {
+      success: true,
+      data: myCarts.carts,
+    };
+  } catch (e) {
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      message: e.message,
+    };
+  }
+};
+
+export const getOneCart = async (ctx: Context) => {
+  const user = ctx.user;
+  const { id } = ctx.params;
+
+  try {
+    const findItem = await Item.findOne({
+      where: { id },
+      include: {
+        model: User,
+        as: "selectedByUsers",
+        where: { id: user.id },
+        attributes: [],
+      },
+    });
+
+    ctx.status = 200;
+    ctx.body = {
+      success: true,
+      data: findItem,
+    };
+  } catch (e) {
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      message: e.message,
+    };
+  }
+};
+
+// pending...
+export const buyItem = async (ctx: Context) => {
+  const user = ctx.user;
+  const { id } = ctx.params;
+  const willBuyItem = await Item.findOne({ where: { id: id } });
+
+  const web3 = new Web3(
+    new Web3.providers.HttpProvider("http://localhost:8545")
+  );
+
+  // Smart Contract thing...
+  if (willBuyItem) {
+    const contract = new web3.eth.Contract(
+      CounterAbi,
+      "0x1fa84aa80D7cc9A27d8C5d30A74A33217537Bba7"
+    );
+
+    await contract.methods.incrementCount().call();
+    setTimeout(async () => {
+      const result = await contract.methods.getCount().call();
+      console.log(result);
+    }, 10000);
+  }
+};
+
+export const toggleLike = async (ctx: Context) => {
+  const user = ctx.user;
+  const { id } = ctx.params;
+
+  try {
+    const selectItem = await Item.findOne({ where: { id } });
+    const isLiked = await Like.findOne({
+      include: [
+        { model: User, where: { id: user.id } },
+        { model: Item, where: { id } },
+      ],
+    });
+    if (!isLiked) {
+      await Like.create({}).then((like) => {
+        like.$add("users", user);
+        like.$add("items", selectItem);
+      });
+    } else {
+      await Like.destroy({ where: { id: isLiked.id } });
+    }
+
+    ctx.status = 200;
+    ctx.body = {
+      success: true,
+      data: null,
+    };
+  } catch (e) {
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      message: e.message,
     };
   }
 };

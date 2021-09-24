@@ -10,7 +10,9 @@ import {
   ForeignKey,
   BelongsTo,
 } from "sequelize-typescript";
+import ItemLike from "./ItemLike.schema";
 import ItemUser from "./ItemUser.schema";
+import Like from "./LIke.schema";
 import User from "./User.schema";
 
 @Table({ charset: "utf8", collate: "utf8_unicode_ci" })
@@ -34,11 +36,14 @@ export default class Item extends Model {
 
   @ForeignKey(() => User)
   @Column(DataType.UUID)
-  itemId: string;
+  authorId: string;
 
-  @BelongsTo(() => User)
-  user: User;
+  @BelongsTo(() => User, { onUpdate: "CASCADE", onDelete: "CASCADE" })
+  author: User;
 
   @BelongsToMany(() => User, () => ItemUser)
-  users: User[];
+  selectedByUsers: User[];
+
+  @BelongsToMany(() => Like, () => ItemLike)
+  likes: Like[];
 }

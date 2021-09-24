@@ -42,7 +42,10 @@ export const signup = async (ctx: Context) => {
           url: "",
         },
       },
-      { include: Avatar }
+      {
+        include: Avatar,
+        hooks: true,
+      }
     );
 
     ctx.status = 200;
@@ -62,6 +65,7 @@ export const signup = async (ctx: Context) => {
 
 export const login = async (ctx: Context) => {
   const { email, password } = ctx.request.body;
+  console.log(email, password);
   const schema = Joi.object().keys({
     email: Joi.string().email().required(),
     password: Joi.string()
@@ -116,13 +120,13 @@ export const login = async (ctx: Context) => {
 };
 
 export const editAccount = async (ctx: Context) => {
-  const userInfo = ctx.user;
+  const user = ctx.user;
   const { username, url } = ctx.request.body;
 
   try {
-    await User.update({ username }, { where: { id: userInfo.id } });
+    await User.update({ username }, { where: { id: user.id } });
 
-    await Avatar.update({ url }, { where: { userId: userInfo.id } });
+    await Avatar.update({ url }, { where: { userId: user.id } });
 
     ctx.status = 200;
     ctx.body = {
@@ -138,11 +142,11 @@ export const editAccount = async (ctx: Context) => {
 };
 
 export const getMyInfo = async (ctx: Context) => {
-  const userInfo = ctx.user;
+  const user = ctx.user;
 
   try {
     const getUserInfo = await User.findOne({
-      where: { id: userInfo.id },
+      where: { id: user.id },
       include: [{ model: Item }, { model: Avatar }],
       attributes: ["username, avatar, carts, items"],
     });

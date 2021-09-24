@@ -22,7 +22,7 @@ const db = new Sequelize({
 });
 
 (async () => {
-  await db.sync({ alter: true, force: false });
+  await db.sync({ force: false, alter: true });
 })();
 
 export default db;

@@ -30,7 +30,8 @@
     "sequelize": "^6.6.5",
     "sequelize-typescript": "^2.1.0",
     "ts-node": "^10.2.1",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "web3": "^1.5.3"
   },
   "devDependencies": {
     "@types/koa": "^2.13.4",
